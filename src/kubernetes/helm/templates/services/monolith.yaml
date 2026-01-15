@@ -23,6 +23,8 @@ spec:
       labels:
         app: monolith
     spec:
+      imagePullSecrets:
+        - name: dockerconfigjson
       containers:
       - name: monolith
         image: {{ .Values.monolith.image.repository }}:{{ .Values.monolith.image.tag }}
@@ -31,31 +33,29 @@ spec:
         - containerPort: {{ .Values.monolith.service.targetPort }}
         env:
         - name: PORT
-          value: "{{ .Values.monolith.service.targetPort }}"
+          value: "8080"
         - name: DB_CONNECTION_STRING
           value: "postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable"
-        envFrom:
-        - configMapRef:
-            name: cinemaabyss-config
+
+envFrom:
+- configMapRef:
+    name: cinemaabyss-config
         - secretRef:
             name: cinemaabyss-secrets
         resources:
           {{- toYaml .Values.monolith.resources | nindent 10 }}
         readinessProbe:
           httpGet:
-            path: /api/users
+            path: /health
             port: {{ .Values.monolith.service.targetPort }}
           initialDelaySeconds: 5
           periodSeconds: 10
         livenessProbe:
           httpGet:
-            path: /api/users
+            path: /health
             port: {{ .Values.monolith.service.targetPort }}
-          initialDelaySeconds: 15
+          initialDelaySeconds: 10
           periodSeconds: 20
-      restartPolicy: Always
-      imagePullSecrets:
-        - name: dockerconfigjson
 ---
 apiVersion: v1
 kind: Service
@@ -72,5 +72,5 @@ spec:
   ports:
   - port: {{ .Values.monolith.service.port }}
     targetPort: {{ .Values.monolith.service.targetPort }}
-  type: {{ .Values.monolith.service.type }}
+  type: ClusterIP
 {{- end }}

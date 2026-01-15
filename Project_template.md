@@ -5,7 +5,7 @@
 1. Спроектируйте to be архитектуру КиноБездны, разделив всю систему на отдельные домены и организовав интеграционное взаимодействие и единую точку вызова сервисов.
 Результат представьте в виде контейнерной диаграммы в нотации С4.
 Добавьте ссылку на файл в этот шаблон
-[ссылка на файл](ссылка)
+[Контейнерная диаграмма To-Be](docs/C4_Container.puml)
 
 # Задание 2
 
@@ -44,6 +44,7 @@
    ```bash
    curl http://localhost:8000/api/movies
    ```
+[CURL result](docs/screenshots/2_curl_result.jpg)
 - Протестируйте постепенный переход, изменив переменную окружения MOVIES_MIGRATION_PERCENT в файле docker-compose.yml.
 
 
@@ -58,6 +59,8 @@
 
 Необходимые тесты для проверки этого API вызываются при запуске npm run test:local из папки tests/postman 
 Приложите скриншот тестов и скриншот состояния топиков Kafka из UI http://localhost:8090 
+[Kafka topics](docs/screenshots/2_Kafka_topics.JPG)
+[Postman tests](docs/screenshots/2_postman_test_results.JPG)
 
 # Задание 3
 
@@ -75,7 +78,7 @@
 ```yaml
 on:
   push:
-    branches: [ main ]
+    branches: [ main]
     paths:
       - 'src/**'
       - '.github/workflows/docker-build-push.yml'
