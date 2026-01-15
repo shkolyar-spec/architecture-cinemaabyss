@@ -44,7 +44,7 @@
    ```bash
    curl http://localhost:8000/api/movies
    ```
-[CURL result](docs/screenshots/2_curl_result.jpg)
+Результат [CURL result](docs/screenshots/2_curl_result.jpg)
 - Протестируйте постепенный переход, изменив переменную окружения MOVIES_MIGRATION_PERCENT в файле docker-compose.yml.
 
 

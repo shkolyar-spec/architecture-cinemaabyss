@@ -42,11 +42,24 @@ jobs:
       - name: Build stack for tests
         run: docker compose up -d --build
 
-      - name: Run Postman tests (docker)
+      - name: Wait for services
+        run: |
+          echo "Waiting for services to become healthy..."
+          for i in {1..60}; do
+            curl -fsS http://localhost:8080/health && break || true
+            sleep 2
+          done
+
+          curl -fsS http://localhost:8080/health
+          curl -fsS http://localhost:8081/api/movies/health
+          curl -fsS http://localhost:8082/api/events/health
+          curl -fsS http://localhost:8000/health
+
+      - name: Run Postman tests (CI)
         working-directory: tests/postman
         run: |
           npm ci
-          npm run test:docker
+          node run-tests.js --environment ci
 
       - name: Stop stack
         if: always()
