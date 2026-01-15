@@ -33,19 +33,39 @@ jobs:
         working-directory: tests/postman
         run: npm ci
 
-      - name: Run tests (docker)
+      - name: Run tests against docker-compose
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.environment == 'docker' }}
         working-directory: tests/postman
         run: |
           docker compose up -d --build
-          echo "Waiting for services..."
-          sleep 20
-          node run-tests.js --environment ci
 
-      - name: Run tests (local)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'local' }}
-        working-directory: tests/postman
-        run: npm run test:local
+          echo "Waiting for services to be ready..."
+          # Отключаем прокси, иначе newman может падать с "Invalid IP address: undefined"
+          export HTTP_PROXY=""
+          export HTTPS_PROXY=""
+          export ALL_PROXY=""
+          export NO_PROXY="localhost,127.0.0.1"
+
+          # Подождём readiness через health endpoints
+          for i in {1..60}; do
+            curl -fsS http://localhost:8080/health && break || true
+            sleep 2
+          done
+          for i in {1..60}; do
+            curl -fsS http://localhost:8081/api/movies/health && break || true
+            sleep 2
+          done
+          for i in {1..60}; do
+            curl -fsS http://localhost:8082/api/events/health && break || true
+            sleep 2
+          done
+          for i in {1..60}; do
+            curl -fsS http://localhost:8000/health && break || true
+            sleep 2
+          done
+
+          # Запускаем local (потому что тесты идут с хоста GitHub Runner)
+          npm run test:local
 
       - name: Stop services
         if: always()
