@@ -23,6 +23,8 @@ spec:
       labels:
         app: movies-service
     spec:
+      imagePullSecrets:
+        - name: dockerconfigjson
       containers:
       - name: movies-service
         image: {{ .Values.moviesService.image.repository }}:{{ .Values.moviesService.image.tag }}
@@ -31,12 +33,13 @@ spec:
         - containerPort: {{ .Values.moviesService.service.targetPort }}
         env:
         - name: PORT
-          value: "{{ .Values.moviesService.service.targetPort }}"
+          value: "8081"
         - name: DB_CONNECTION_STRING
           value: "postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable"
-        envFrom:
-        - configMapRef:
-            name: cinemaabyss-config
+
+envFrom:
+- configMapRef:
+    name: cinemaabyss-config
         - secretRef:
             name: cinemaabyss-secrets
         resources:
@@ -51,11 +54,8 @@ spec:
           httpGet:
             path: /api/movies/health
             port: {{ .Values.moviesService.service.targetPort }}
-          initialDelaySeconds: 15
+          initialDelaySeconds: 10
           periodSeconds: 20
-      restartPolicy: Always
-      imagePullSecrets:
-        - name: dockerconfigjson
 ---
 apiVersion: v1
 kind: Service
@@ -72,5 +72,5 @@ spec:
   ports:
   - port: {{ .Values.moviesService.service.port }}
     targetPort: {{ .Values.moviesService.service.targetPort }}
-  type: {{ .Values.moviesService.service.type }}
+  type: ClusterIP
 {{- end }}

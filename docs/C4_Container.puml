@@ -1,0 +1,137 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_TOP_DOWN()
+'skinparam linetype ortho
+
+title Контейнерная диаграмма backend-системы Кинобездны To Be
+
+'Фронты
+'-----------------
+together {
+    Container_Ext(mobile_app, "Мобильное приложение", "iOS/Android")
+    Container_Ext(desktop_app, "Веб приложение", "Browser")
+    Container_Ext(tv_app, "ТВ приложение", "TV Client")
+
+}
+
+
+'Системы внешние
+'-----------------
+together {
+Container_Ext(payment_system, "Платежная система")
+Container_Ext(theatre_system, "Онлайн кинотеатры")
+Container_Ext(recommend_system, "Рекомендательная система")
+}
+
+'Платформа\инфраструктура внешние
+'-----------------
+together {
+Container_Ext(S3_system, "S3", "Облачное хранилище контента")
+Container_Ext(kafka, "Kafka", "Apache Kafka")
+}
+
+together {
+ContainerDb_Ext(db_movie, "База данных сервиса фильмов", "PostrgeSQL", "Хранение данных")
+ContainerDb_Ext(db_event, "База данных сервиса событий", "PostrgeSQL", "Хранение данных")
+ContainerDb_Ext(db_users, "База данных сервиса пользователей", "PostrgeSQL", "Хранение данных")
+ContainerDb_Ext(db_integration_gateway, "База данных сервиса Integration Gateway", "PostrgeSQL", "Хранение данных")
+ContainerDb_Ext(db_subscribes, "База данных сервиса подписок", "PostrgeSQL", "Хранение данных")
+ContainerDb_Ext(db_payment, "База данных сервиса платежей", "PostrgeSQL", "Хранение данных")
+}
+
+'Границы системы
+'-----------------
+System_Boundary(system, "Система (микросервисы)") {
+    together {
+    Container(api_gateway, "API Gateway", "Nginx/Kong", "Контроль доступа к сервисам")
+    }
+
+    together {
+    Container(bff_mobile, "BFF для мобильного", "Java", "API для моб. приложения")
+    Container(bff_web, "BFF для веб", "Java", "API для веб. приложения")
+    Container(bff_tv, "BFF для ТВ", "Java", "API для ТВ клиента")
+    }
+
+    together {
+    Container(movie_service, "Фильмы", "Java", "Метаданные фильмов, рейтинги, жанры")
+    Container(payment_service, "Обработка платежей", "Java", "Управление платежами")
+    Container(integration_gateway, "Integration Gateway", "Java", "Интеграция с внешними системами: валидация и адаптация")
+    Container(manage_users, "Управление пользователями", "Java", "Регистрация, авторизация пользователей, ведение персональных скидок")
+    Container(manage_subscribes, "Управление подписками", "Java", "Ведение тарифов, расчет стоимости")
+    }
+
+    together {
+    Container(event_service, "Обработка событий", "Java", "Обрабатывает коммуникацию между сервисами на основе событий")
+    }
+}
+
+'Фронт -> gateway
+'-----------------
+Rel_D(mobile_app,  api_gateway, "Вызывает", "HTTP")
+Rel_D(desktop_app, api_gateway, "Вызывает", "HTTP")
+Rel_D(tv_app,      api_gateway, "Вызывает", "HLS")
+
+'Внешние системы -> integration_gateway
+'-----------------
+Rel_D(integration_gateway, payment_system, "Вызывает\получает", "HTTP")
+Rel_D(integration_gateway, theatre_system, "Вызывает\получает", "HTTP")
+Rel_D(integration_gateway, recommend_system, "Вызывает\получает", "HTTP")
+Rel_D(integration_gateway, S3_system, "Вызывает\получает", "HTTP")
+
+
+'Связи внутри системы с API Gateway
+'----------------
+Rel_D(api_gateway, integration_gateway, "Вызывает", "HTTP")
+Rel_D(api_gateway, bff_mobile, "Вызывает", "HTTP")
+Rel_D(api_gateway, bff_web, "Вызывает", "HTTP")
+Rel_D(api_gateway, bff_tv, "Вызывает", "HTTP")
+
+'Связи внутри системы с BFF (с основными сервисамим)
+'----------------
+Rel_D(bff_mobile,     movie_service, "Вызывает", "HTTP")
+Rel_D(bff_web,        movie_service, "Вызывает", "HTTP")
+Rel_D(bff_tv,         movie_service, "Вызывает", "HTTP")
+Rel_D(bff_mobile,     manage_users, "Вызывает", "HTTP")
+Rel_D(bff_web,        manage_users, "Вызывает", "HTTP")
+Rel_D(bff_mobile,     payment_service, "Вызывает", "HTTP")
+Rel_D(bff_web,        payment_service, "Вызывает", "HTTP")
+Rel_D(bff_tv,         payment_service, "Вызывает", "HTTP")
+Rel_D(bff_mobile,     manage_subscribes, "Вызывает", "HTTP")
+Rel_D(bff_web,        manage_subscribes, "Вызывает", "HTTP")
+
+
+'Связи внутри системы с event service
+'----------------
+Rel_D(event_service, movie_service, "Вызывает", "HTTP")
+Rel_D(event_service, manage_users, "Вызывает", "HTTP")
+Rel_D(event_service, payment_service, "Вызывает", "HTTP")
+Rel_D(event_service, manage_subscribes, "Вызывает", "HTTP")
+
+'Связи сервисов с Kafka
+'-----------------
+Rel_D(integration_gateway,    kafka, "Публикует события", "Kafka topic")
+Rel_D(event_service,          kafka, "Читает события", "Kafka topic")
+Rel_D(movie_service,          kafka, "Публикует события", "Kafka topic")
+Rel_D(manage_users,           kafka, "Публикует события", "Kafka topic")
+Rel_D(payment_service,        kafka, "Публикует события", "Kafka topic")
+Rel_D(manage_subscribes,      kafka, "Публикует события", "Kafka topic")
+
+
+'Связи внутри системы с БД
+'----------------
+Rel_D(event_service,        db_event, "Записывает\читает", "CRUD", "JDBC")
+Rel_D(movie_service,        db_movie, "Записывает\читает", "CRUD", "JDBC")
+Rel_D(manage_users,         db_users, "Записывает\читает", "CRUD", "JDBC")
+Rel_D(payment_service,      db_payment, "Записывает\читает", "CRUD", "JDBC")
+Rel_D(manage_subscribes,    db_subscribes, "Записывает\читает", "CRUD", "JDBC")
+Rel_D(integration_gateway,  db_integration_gateway, "Записывает\читает", "CRUD", "JDBC")
+
+
+'Связи сервисов внутри системы
+'----------------
+Rel_D(movie_service, integration_gateway, "Вызов", "HTTPS")
+
+
+
+@enduml
